@@ -284,7 +284,7 @@
     <div class="masthead-top">
       <h1>SuperActionCounter</h1>
       <div class="meta">
-        <span class="version">v1.8</span> · <span id="todayDate"></span> · <span class="clock" id="clockNow"></span>
+        <span class="version">v2.0</span> · <span id="todayDate"></span> · <span class="clock" id="clockNow"></span>
       </div>
     </div>
     <p class="sub">시작일·종료일 확인 여부에 따라 세 세션으로 나눠 관리합니다. 종료일이 확인된 항목은 남은시간이 바로 카운트다운되고, 이미 지난 일정은 초과 시간으로 표기됩니다.</p>
@@ -327,14 +327,11 @@
       <p class="hint">"9/1부터 9/10까지", "9월 10일까지", "내일까지" 같은 표현에서 시작일·종료일을 자동으로 인식합니다. 날짜가 없거나 불완전하면 오른쪽 세션에서 직접 채워 넣어 누락을 막아 주세요.</p>
 
       <div class="sync-box">
-        <div class="section-label">여러 기기 동기화 (JSONBin)</div>
-        <input id="syncApiKey" type="password" placeholder="JSONBin API Key (X-Master-Key)">
-        <input id="syncBinId" type="text" placeholder="Bin ID (비워두면 새로 생성)">
+        <div class="section-label">동기화 상태</div>
         <div class="actions-row">
-          <button id="syncSaveBtn">설정 저장 · 연결</button>
-          <button id="syncPullBtn" class="ghost">지금 불러오기</button>
+          <button id="syncPullBtn" class="ghost">새로고침 (다른 사용자 변경사항 불러오기)</button>
         </div>
-        <p id="syncStatus" class="hint">아직 연결되지 않았어요. API Key만 입력하고 "설정 저장"을 누르면 저장소가 자동으로 만들어져요.</p>
+        <p id="syncStatus" class="hint"></p>
       </div>
     </div>
 
@@ -377,8 +374,10 @@
   var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
   var items = [];
   var lastBuckets = { s1: [], s2: [], s3: [] };
-  var SYNC_KEY = 'jsonbin_sync_config_v1';
-  var syncConfig = { apiKey: '', binId: '' };
+  var SYNC_CONFIG = {
+    apiKey: '$2a$10$3HvfpUTBDp8/34VNfP280.tfywcjXGkTXiUlfHgQYJ3q59B2DlXO2',
+    binId: '6a97f215da38895dfe2ebb91'
+  };
   var syncTimer = null;
 
   function pad(n){ return n.toString().padStart(2,'0'); }
@@ -449,40 +448,37 @@
     if(shouldSync !== false) scheduleSync();
   }
 
-  function loadSyncConfig(){
-    try{
-      var raw = localStorage.getItem(SYNC_KEY);
-      if(raw) syncConfig = JSON.parse(raw);
-    }catch(e){ syncConfig = { apiKey:'', binId:'' }; }
-    document.getElementById('syncApiKey').value = syncConfig.apiKey || '';
-    document.getElementById('syncBinId').value = syncConfig.binId || '';
-  }
-
-  function persistSyncConfig(){
-    localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
-  }
-
   function setSyncStatus(msg, isError){
     var el = document.getElementById('syncStatus');
+    if(!el) return;
     el.textContent = msg;
     el.style.color = isError ? 'var(--danger)' : 'var(--text-faint)';
   }
 
   function scheduleSync(){
-    if(!syncConfig.apiKey || !syncConfig.binId) return;
+    if(!SYNC_CONFIG.apiKey || !SYNC_CONFIG.binId) return;
     if(syncTimer) clearTimeout(syncTimer);
     syncTimer = setTimeout(pushToBin, 1500);
   }
 
-  async function pushToBin(){
-    if(!syncConfig.apiKey || !syncConfig.binId) return;
+  async function readErrorMessage(res){
     try{
-      var res = await fetch('https://api.jsonbin.io/v3/b/' + syncConfig.binId, {
+      var body = await res.json();
+      return body && body.message ? body.message : ('HTTP ' + res.status);
+    }catch(e){
+      return 'HTTP ' + res.status;
+    }
+  }
+
+  async function pushToBin(){
+    if(!SYNC_CONFIG.apiKey || !SYNC_CONFIG.binId) return;
+    try{
+      var res = await fetch('https://api.jsonbin.io/v3/b/' + SYNC_CONFIG.binId, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Master-Key': syncConfig.apiKey },
-        body: JSON.stringify(items)
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': SYNC_CONFIG.apiKey },
+        body: JSON.stringify({ items: items, updatedAt: new Date().toISOString() })
       });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      if(!res.ok) throw new Error(await readErrorMessage(res));
       setSyncStatus('동기화 완료 · ' + new Date().toLocaleTimeString('ko-KR', { timeZone: KST_TZ }));
     }catch(e){
       setSyncStatus('동기화 실패: ' + e.message, true);
@@ -490,18 +486,19 @@
   }
 
   async function pullFromBin(){
-    if(!syncConfig.apiKey || !syncConfig.binId){
-      setSyncStatus('API Key와 Bin ID를 먼저 입력해 주세요.', true);
+    if(!SYNC_CONFIG.apiKey || !SYNC_CONFIG.binId){
+      setSyncStatus('동기화가 아직 설정되지 않았어요.', true);
       return false;
     }
     try{
       setSyncStatus('불러오는 중...');
-      var res = await fetch('https://api.jsonbin.io/v3/b/' + syncConfig.binId + '/latest', {
-        headers: { 'X-Master-Key': syncConfig.apiKey }
+      var res = await fetch('https://api.jsonbin.io/v3/b/' + SYNC_CONFIG.binId + '/latest', {
+        headers: { 'X-Master-Key': SYNC_CONFIG.apiKey }
       });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      if(!res.ok) throw new Error(await readErrorMessage(res));
       var data = await res.json();
-      items = Array.isArray(data.record) ? data.record : [];
+      var record = data.record || {};
+      items = Array.isArray(record.items) ? record.items : [];
       save(false);
       render();
       setSyncStatus('불러오기 완료 · ' + new Date().toLocaleTimeString('ko-KR', { timeZone: KST_TZ }));
@@ -512,38 +509,12 @@
     }
   }
 
-  async function createBin(){
-    if(!syncConfig.apiKey){
-      setSyncStatus('API Key를 먼저 입력해 주세요.', true);
-      return;
-    }
-    try{
-      setSyncStatus('새 저장소 만드는 중...');
-      var res = await fetch('https://api.jsonbin.io/v3/b', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': syncConfig.apiKey,
-          'X-Bin-Name': 'SuperActionCounter'
-        },
-        body: JSON.stringify(items)
-      });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      var data = await res.json();
-      syncConfig.binId = data.metadata.id;
-      document.getElementById('syncBinId').value = syncConfig.binId;
-      persistSyncConfig();
-      setSyncStatus('새 저장소 생성 완료 · 이 Bin ID를 다른 기기에도 입력하면 같은 데이터를 볼 수 있어요.');
-    }catch(e){
-      setSyncStatus('생성 실패: ' + e.message, true);
-    }
-  }
-
   async function load(){
-    loadSyncConfig();
-    if(syncConfig.apiKey && syncConfig.binId){
+    if(SYNC_CONFIG.apiKey && SYNC_CONFIG.binId){
       var ok = await pullFromBin();
       if(ok) return;
+    } else {
+      setSyncStatus('동기화 미설정 (이 브라우저에만 저장됩니다)');
     }
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -927,21 +898,6 @@
 
   document.getElementById('addBtn').addEventListener('click', function(){
     addItem('');
-  });
-
-  document.getElementById('syncSaveBtn').addEventListener('click', async function(){
-    syncConfig.apiKey = document.getElementById('syncApiKey').value.trim();
-    syncConfig.binId = document.getElementById('syncBinId').value.trim();
-    persistSyncConfig();
-    if(!syncConfig.apiKey){
-      setSyncStatus('API Key를 입력해 주세요.', true);
-      return;
-    }
-    if(!syncConfig.binId){
-      await createBin();
-    } else {
-      await pullFromBin();
-    }
   });
 
   document.getElementById('syncPullBtn').addEventListener('click', function(){

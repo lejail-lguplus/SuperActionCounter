@@ -25,6 +25,8 @@
     --olive-bg:rgba(159,189,110,0.14);
     --danger:#F0776B;
     --danger-bg:rgba(240,119,107,0.16);
+    --new:#FF6FAE;
+    --new-bg:rgba(255,111,174,0.16);
     --font-ui:'Nanum Gothic', -apple-system, 'Segoe UI', sans-serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   }
@@ -136,6 +138,37 @@
   button:disabled:hover{ background:transparent; color:var(--text); }
   button.ghost{ border-color:var(--line); color:var(--text-soft); }
   button.ghost:hover{ background:var(--bg-raised); color:var(--text); border-color:var(--text-soft); }
+  button.danger-btn{ border-color:var(--danger); color:var(--danger); }
+  button.danger-btn:hover{ background:var(--danger); color:var(--bg); }
+
+  .search-row{ display:flex; gap:8px; margin-bottom:1.4rem; }
+  .search-row input{
+    flex:1;
+    min-width:0;
+    font-family: var(--font-ui);
+    font-size:13px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:8px 10px;
+    background:var(--bg-raised);
+    color:var(--text);
+  }
+  .search-row input:focus{ outline:none; border-color:var(--text-soft); }
+  .search-row input::placeholder{ color:var(--text-faint); }
+
+  .new-badge{
+    font-size:10px;
+    font-weight:800;
+    padding:2px 8px;
+    border-radius:10px;
+    background:var(--new-bg);
+    color:var(--new);
+    letter-spacing:0.03em;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+
+  .session.snew .dot{ background:var(--new); }
 
   #extractErr{ font-size:13px; color:var(--danger); margin:0.6rem 0 0; display:none; }
   .hint{ font-size:12px; color:var(--text-faint); margin:0.9rem 0 0; line-height:1.6; }
@@ -202,11 +235,11 @@
   .card.done .title-input{ color:var(--text-faint); text-decoration:line-through; }
 
   .card-line2{ display:flex; align-items:center; gap:16px; margin-top:10px; flex-wrap:wrap; }
-  .date-field{ display:flex; align-items:center; gap:4px; }
+  .date-field{ display:flex; align-items:center; gap:6px; }
   .date-field .lab{ font-size:11px; color:var(--text-faint); flex-shrink:0; }
   .date-input{
     font-family: var(--font-mono);
-    font-size:12px;
+    font-size:13px;
     border:1px solid var(--line);
     border-radius:4px;
     padding:4px 6px;
@@ -215,6 +248,26 @@
     color-scheme: dark;
   }
   .date-input.missing{ border-color:var(--amber); background:var(--amber-bg); color:var(--amber); }
+
+  .date-field.due-field{ gap:8px; }
+  .date-field.due-field .lab{
+    font-size:14px;
+    font-weight:800;
+    color:var(--text);
+  }
+  .date-field.due-field .date-input{
+    font-size:18px;
+    font-weight:800;
+    padding:8px 14px;
+    border-width:2px;
+    border-radius:6px;
+    color:var(--text);
+  }
+  .date-field.due-field .date-input.missing{
+    border-color:var(--amber);
+    background:var(--amber-bg);
+    color:var(--amber);
+  }
 
   .card-line3{ display:flex; align-items:center; gap:14px; margin-top:12px; flex-wrap:wrap; }
 
@@ -248,6 +301,7 @@
   }
   .countdown-big.over{ background:var(--danger-bg); color:var(--danger); }
   .countdown-big.warn{ background:var(--amber-bg); color:var(--amber); }
+  .countdown-big.done-fixed{ background:var(--olive-bg); color:var(--olive); font-size:16px; }
 
   .elapsed-note{ font-size:12px; color:var(--text-faint); }
 
@@ -284,7 +338,7 @@
     <div class="masthead-top">
       <h1>SuperActionCounter</h1>
       <div class="meta">
-        <span class="version">v2.0</span> · <span id="todayDate"></span> · <span class="clock" id="clockNow"></span>
+        <span class="version">v2.3</span> · <span id="todayDate"></span> · <span class="clock" id="clockNow"></span>
       </div>
     </div>
     <p class="sub">시작일·종료일 확인 여부에 따라 세 세션으로 나눠 관리합니다. 종료일이 확인된 항목은 남은시간이 바로 카운트다운되고, 이미 지난 일정은 초과 시간으로 표기됩니다.</p>
@@ -297,6 +351,7 @@
       <div class="dash-card"><div class="dash-val" id="dashDoing">0</div><div class="dash-lab">진행중</div></div>
       <div class="dash-card"><div class="dash-val" id="dashDone">0</div><div class="dash-lab">완료</div></div>
       <div class="dash-card"><div class="dash-val danger" id="dashOverdue">0</div><div class="dash-lab">초과</div></div>
+      <div class="dash-card"><div class="dash-val" style="color:var(--new);" id="dashNew">0</div><div class="dash-lab">신규(NEW)</div></div>
       <div class="dash-card"><div class="dash-val warn" id="dashNodate">0</div><div class="dash-lab">날짜 미확인</div></div>
       <div class="dash-card"><div class="dash-val" id="dashElapsed">00:00:00</div><div class="dash-lab">누적 작업시간</div></div>
     </div>
@@ -321,6 +376,7 @@
       <div class="actions-row">
         <button id="extractBtn">할 일 추출</button>
         <button id="addBtn" class="ghost">직접 추가</button>
+        <button id="resetBtn" class="danger-btn">전체 초기화</button>
       </div>
       <p id="extractErr"></p>
       <p id="extractInfo" style="font-size:13px; color:var(--teal); margin:0.6rem 0 0; display:none;"></p>
@@ -336,7 +392,21 @@
     </div>
 
     <div class="panel-right">
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="할 일 제목으로 검색...">
+        <button id="searchBtn" class="ghost">검색</button>
+      </div>
+
       <div id="emptyGlobal" style="display:none;">아직 등록된 할 일이 없어요.</div>
+
+      <div class="session snew">
+        <div class="session-header">
+          <div class="title"><span class="dot"></span>새로 추가됨 (NEW)</div>
+          <p class="desc">최근 24시간 이내에 추가된 항목이에요. 시간이 지나면 자동으로 해당 날짜 세션으로 이동해요.</p>
+        </div>
+        <div id="listNew"></div>
+        <p class="session-empty" id="emptyNew">새로 추가된 항목이 없어요.</p>
+      </div>
 
       <div class="session s1">
         <div class="session-header">
@@ -373,7 +443,8 @@
   var KST_TZ = 'Asia/Seoul';
   var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
   var items = [];
-  var lastBuckets = { s1: [], s2: [], s3: [] };
+  var lastBuckets = { new: [], s1: [], s2: [], s3: [] };
+  var searchQuery = '';
   var SYNC_CONFIG = {
     apiKey: '$2a$10$3HvfpUTBDp8/34VNfP280.tfywcjXGkTXiUlfHgQYJ3q59B2DlXO2',
     binId: '6a97f215da38895dfe2ebb91'
@@ -612,7 +683,8 @@
       running: false,
       startedAt: null,
       startDate: dates.startDate ? dates.startDate.toISOString() : null,
-      dueDate: dates.endDate ? dates.endDate.toISOString() : null
+      dueDate: dates.endDate ? dates.endDate.toISOString() : null,
+      createdAt: Date.now()
     });
     save();
     render();
@@ -648,6 +720,11 @@
       it.running = false;
       it.startedAt = null;
     }
+    if(status === 'done'){
+      if(!it.completedAt) it.completedAt = Date.now();
+    } else {
+      it.completedAt = null;
+    }
     it.status = status;
     save();
     render();
@@ -682,15 +759,26 @@
     return p.y + '-' + pad(p.m) + '-' + pad(p.d);
   }
 
-  function sessionOf(it){
+  var NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+  function isRecentlyAdded(it){
+    return !!it.createdAt && (Date.now() - it.createdAt) < NEW_WINDOW_MS;
+  }
+
+  function dateSessionOf(it){
     if(it.dueDate) return 's1';
     if(it.startDate) return 's2';
     return 's3';
   }
 
-  function makeDateField(labelText, value, missing, onChange){
+  function sessionOf(it){
+    if(isRecentlyAdded(it)) return 'new';
+    return dateSessionOf(it);
+  }
+
+  function makeDateField(labelText, value, missing, onChange, emphasize){
     var wrap = document.createElement('div');
-    wrap.className = 'date-field';
+    wrap.className = 'date-field' + (emphasize ? ' due-field' : '');
     var lab = document.createElement('span');
     lab.className = 'lab';
     lab.textContent = labelText;
@@ -718,13 +806,20 @@
     return wrap;
   }
 
-  function renderCard(it, session){
+  function renderCard(it, session, isNew){
     var isOverdue = session === 's1' && it.dueDate && new Date(it.dueDate).getTime() < Date.now();
     var card = document.createElement('div');
     card.className = 'card' + (it.status === 'done' ? ' done' : '') + (isOverdue && it.status !== 'done' ? ' over' : '');
 
     var line1 = document.createElement('div');
     line1.className = 'card-line1';
+
+    if(isNew){
+      var badge = document.createElement('span');
+      badge.className = 'new-badge';
+      badge.textContent = 'NEW';
+      line1.appendChild(badge);
+    }
 
     var input = document.createElement('input');
     input.type = 'text';
@@ -744,7 +839,7 @@
     var line2 = document.createElement('div');
     line2.className = 'card-line2';
     var startField = makeDateField('시작', toDateInputValue(it.startDate), false, function(v){ setDateField(it.id, 'startDate', v); });
-    var endField = makeDateField('종료', toDateInputValue(it.dueDate), !it.dueDate, function(v){ setDateField(it.id, 'dueDate', v); });
+    var endField = makeDateField('기한', toDateInputValue(it.dueDate), !it.dueDate, function(v){ setDateField(it.id, 'dueDate', v); }, true);
     line2.appendChild(startField);
     line2.appendChild(endField);
 
@@ -788,41 +883,58 @@
   }
 
   function render(){
+    var listNew = document.getElementById('listNew');
     var listS1 = document.getElementById('listS1');
     var listS2 = document.getElementById('listS2');
     var listS3 = document.getElementById('listS3');
-    listS1.innerHTML = ''; listS2.innerHTML = ''; listS3.innerHTML = '';
+    listNew.innerHTML = ''; listS1.innerHTML = ''; listS2.innerHTML = ''; listS3.innerHTML = '';
 
     document.getElementById('emptyGlobal').style.display = items.length === 0 ? 'block' : 'none';
 
-    var buckets = { s1: [], s2: [], s3: [] };
+    var buckets = { new: [], s1: [], s2: [], s3: [] };
     items.forEach(function(it){ buckets[sessionOf(it)].push(it); });
 
+    buckets.new.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
     buckets.s1.sort(function(a,b){ return new Date(a.dueDate) - new Date(b.dueDate); });
-
-    buckets.s1.forEach(function(it){ listS1.appendChild(renderCard(it, 's1')); });
-    buckets.s2.forEach(function(it){ listS2.appendChild(renderCard(it, 's2')); });
-    buckets.s3.forEach(function(it){ listS3.appendChild(renderCard(it, 's3')); });
-
-    document.getElementById('emptyS1').style.display = buckets.s1.length ? 'none' : 'block';
-    document.getElementById('emptyS2').style.display = buckets.s2.length ? 'none' : 'block';
-    document.getElementById('emptyS3').style.display = buckets.s3.length ? 'none' : 'block';
 
     lastBuckets = buckets;
     updateDashboard(buckets);
+
+    var q = normalizeTitle(searchQuery);
+    function matches(it){ return !q || normalizeTitle(it.title).indexOf(q) !== -1; }
+
+    var viewNew = buckets.new.filter(matches);
+    var viewS1 = buckets.s1.filter(matches);
+    var viewS2 = buckets.s2.filter(matches);
+    var viewS3 = buckets.s3.filter(matches);
+
+    viewNew.forEach(function(it){ listNew.appendChild(renderCard(it, dateSessionOf(it), true)); });
+    viewS1.forEach(function(it){ listS1.appendChild(renderCard(it, 's1', false)); });
+    viewS2.forEach(function(it){ listS2.appendChild(renderCard(it, 's2', false)); });
+    viewS3.forEach(function(it){ listS3.appendChild(renderCard(it, 's3', false)); });
+
+    document.getElementById('emptyNew').style.display = viewNew.length ? 'none' : 'block';
+    document.getElementById('emptyS1').style.display = viewS1.length ? 'none' : 'block';
+    document.getElementById('emptyS2').style.display = viewS2.length ? 'none' : 'block';
+    document.getElementById('emptyS3').style.display = viewS3.length ? 'none' : 'block';
   }
 
   function updateCountdownEl(el, it){
-    var remaining = new Date(it.dueDate).getTime() - Date.now();
-    el.textContent = fmtCountdown(remaining);
-    if(remaining < 0){ el.className = 'countdown-big countdown-display over'; }
+    var refTime = (it.status === 'done' && it.completedAt) ? it.completedAt : Date.now();
+    var remaining = new Date(it.dueDate).getTime() - refTime;
+    var prefix = (it.status === 'done') ? '완료 시점 ' : '';
+    el.textContent = prefix + fmtCountdown(remaining);
+    if(it.status === 'done'){
+      el.className = 'countdown-big countdown-display done-fixed';
+    } else if(remaining < 0){ el.className = 'countdown-big countdown-display over'; }
     else if(remaining < 24*3600*1000){ el.className = 'countdown-big countdown-display warn'; }
     else{ el.className = 'countdown-big countdown-display'; }
   }
 
   function updateDashboard(buckets){
-    var overdue = buckets.s1.filter(function(i){ return new Date(i.dueDate).getTime() < Date.now(); }).length;
-    var nodate = buckets.s2.length + buckets.s3.length;
+    var overdue = items.filter(function(i){ return i.dueDate && new Date(i.dueDate).getTime() < Date.now(); }).length;
+    var nodate = items.filter(function(i){ return !i.dueDate; }).length;
+    var newCount = buckets.new.length;
     var todoCount = items.filter(function(i){ return i.status === 'todo'; }).length;
     var doingCount = items.filter(function(i){ return i.status === 'doing'; }).length;
     var doneCount = items.filter(function(i){ return i.status === 'done'; }).length;
@@ -833,6 +945,7 @@
     document.getElementById('dashDoing').textContent = doingCount;
     document.getElementById('dashDone').textContent = doneCount;
     document.getElementById('dashOverdue').textContent = overdue;
+    document.getElementById('dashNew').textContent = newCount;
     document.getElementById('dashNodate').textContent = nodate;
     document.getElementById('dashElapsed').textContent = fmtElapsed(elapsedTotal);
 
@@ -900,12 +1013,29 @@
     addItem('');
   });
 
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    if(!window.confirm('전체 항목을 모두 초기화할까요? 이 작업은 되돌릴 수 없고, 동기화된 다른 사용자의 화면에도 그대로 반영됩니다.')) return;
+    items = [];
+    save();
+    render();
+  });
+
+  document.getElementById('searchInput').addEventListener('input', function(e){
+    searchQuery = e.target.value;
+    render();
+  });
+  document.getElementById('searchBtn').addEventListener('click', function(){
+    searchQuery = document.getElementById('searchInput').value;
+    render();
+  });
+
   document.getElementById('syncPullBtn').addEventListener('click', function(){
     pullFromBin();
   });
 
   updateClock();
   setInterval(tick, 1000);
+  setInterval(render, 60000);
   load();
 })();
 </script>

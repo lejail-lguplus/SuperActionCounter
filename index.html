@@ -198,6 +198,15 @@
   .sync-box input:focus{ outline:none; border-color:var(--text-soft); }
   .sync-box input::placeholder{ color:var(--text-faint); }
   #syncStatus{ margin-top:0.5rem; }
+  .source-link{
+    display:inline-block;
+    margin-top:0.6rem;
+    font-size:11px;
+    color:var(--text-faint);
+    text-decoration:none;
+    border-bottom:1px dotted var(--text-faint);
+  }
+  .source-link:hover{ color:var(--text-soft); border-bottom-color:var(--text-soft); }
 
   .summary{ display:flex; gap:24px; padding-bottom:1rem; border-bottom:1px solid var(--line); margin-bottom:1.4rem; flex-wrap:wrap; }
   .summary .metric .val{ font-family: var(--font-mono); font-size:19px; font-weight:700; }
@@ -391,7 +400,7 @@
     <div class="masthead-top">
       <h1>SuperActionCounter</h1>
       <div class="meta">
-        <span class="version">v2.8</span> · <span id="todayDate"></span> · <span class="clock" id="clockNow"></span>
+        <span class="version">v2.9</span> · <span id="todayDate"></span> · <span class="clock" id="clockNow"></span>
       </div>
     </div>
     <p class="sub">시작일·종료일 확인 여부에 따라 세 세션으로 나눠 관리합니다. 종료일이 확인된 항목은 남은시간이 바로 카운트다운되고, 이미 지난 일정은 초과 시간으로 표기됩니다.</p>
@@ -442,6 +451,7 @@
           <button id="syncPullBtn" class="ghost">새로고침 (다른 사용자 변경사항 불러오기)</button>
         </div>
         <p id="syncStatus" class="hint"></p>
+        <a href="https://jsonbin.io" target="_blank" rel="noopener noreferrer" class="source-link">출처: JSONBin.io</a>
       </div>
     </div>
 
